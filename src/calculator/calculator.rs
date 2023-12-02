@@ -34,12 +34,9 @@ impl Calculator {
             return Err(CalculatorError::EmptyInput);
         }
 
-        let mut local_numbers = Vec::new();
+        let mut local_numbers = Vec::with_capacity(postfix_expression.len() / 2);
 
-        let mut i = 0;
-        while i < postfix_expression.len() {
-            let cell = postfix_expression.get(i).unwrap();
-
+        for cell in postfix_expression {
             if cell.starts_with(|character: char| character.is_ascii_digit()) {
                 local_numbers.push(cell.parse().unwrap());
             } else if self
@@ -48,20 +45,23 @@ impl Calculator {
             {
                 let operator = cell.chars().nth(0).unwrap();
 
-                if operator == '~' {
-                    if let Some(number) = local_numbers.pop() {
-                        local_numbers.push(self.math(0.0, number, '-')?);
+                match operator {
+                    '~' => {
+                        if let Some(number) = local_numbers.pop() {
+                            local_numbers.push(self.math(0.0, number, '-')?);
+                        }
                     }
-                } else if let (Some(second_number), Some(first_number)) =
-                    (local_numbers.pop(), local_numbers.pop())
-                {
-                    local_numbers.push(self.math(first_number, second_number, operator)?);
-                } else {
-                    return Err(CalculatorError::OperationWihtoutANumber(operator));
+                    _ => {
+                        if let (Some(second_number), Some(first_number)) =
+                            (local_numbers.pop(), local_numbers.pop())
+                        {
+                            local_numbers.push(self.math(first_number, second_number, operator)?);
+                        } else {
+                            return Err(CalculatorError::OperationWihtoutANumber(operator));
+                        }
+                    }
                 }
             }
-
-            i += 1;
         }
 
         match local_numbers.pop() {
@@ -86,7 +86,7 @@ impl Calculator {
             let is_digit = character.is_ascii_digit();
 
             if !is_digit && i == 0 {
-                postfix_expression.push(self.previous_answer.to_string().into_boxed_str());
+                postfix_expression.push(self.previous_answer.to_string().into());
             }
 
             if is_digit {
@@ -100,11 +100,11 @@ impl Calculator {
             } else if character == '.' {
                 return Err(CalculatorError::DotWithoutANumber);
             } else if character == 'a' {
-                postfix_expression.push(self.previous_answer.to_string().into_boxed_str());
+                postfix_expression.push(self.previous_answer.to_string().into());
             } else if character == 'p' {
-                postfix_expression.push(PI.to_string().into_boxed_str())
+                postfix_expression.push(PI.to_string().into())
             } else if character == 'e' {
-                postfix_expression.push(E.to_string().into_boxed_str())
+                postfix_expression.push(E.to_string().into())
             } else if character == '(' {
                 operations_stack.push(character);
             } else if character == ')' {
@@ -221,7 +221,7 @@ impl Calculator {
             .collect::<Result<String, _>>()
         {
             Ok(string_number) => Ok((
-                string_number.clone().into(),
+                string_number.to_string().into(),
                 position + string_number.len() - 1,
             )),
             Err(calculator_error) => Err(calculator_error),
@@ -238,10 +238,13 @@ impl Calculator {
             '+' => Ok(first_number + second_number),
             '-' => Ok(first_number - second_number),
             '*' => Ok(first_number * second_number),
-            '/' => match second_number as i64 {
-                0 => Err(CalculatorError::DivisonByZero),
-                _ => Ok(first_number / second_number),
-            },
+            '/' => {
+                if second_number == 0.0 {
+                    Err(CalculatorError::DivisonByZero)
+                } else {
+                    Ok(first_number / second_number)
+                }
+            }
             '^' => Ok(f64::powf(first_number, second_number)),
             _ => Err(CalculatorError::UknownOperator(expression)),
         }
