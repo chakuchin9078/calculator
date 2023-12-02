@@ -110,24 +110,22 @@ impl Calculator {
             } else if character == ')' {
                 let postfix_expression_length = postfix_expression.len();
 
-                postfix_expression.append(
+                postfix_expression.extend(
                     operations_stack
                         .iter()
                         .rev()
                         .map_while(|operation| {
                             if *operation != '(' {
-                                Some(operation.to_string().into_boxed_str())
+                                Some(operation.to_string().into())
                             } else {
                                 None
                             }
                         })
-                        .collect::<Vec<_>>()
-                        .as_mut(),
+                        .collect::<Vec<_>>(),
                 );
 
-                operations_stack.drain(
-                    operations_stack.len()
-                        - (postfix_expression.len() - postfix_expression_length)..,
+                operations_stack.truncate(
+                    operations_stack.len() - (postfix_expression.len() - postfix_expression_length),
                 );
 
                 if operations_stack.is_empty() || *operations_stack.last().unwrap() != '(' {
@@ -152,7 +150,7 @@ impl Calculator {
                     self.opration_priority.get(&current_operator).unwrap(),
                 );
 
-                postfix_expression.append(
+                postfix_expression.extend(
                     operations_stack
                         .iter()
                         .rev()
@@ -160,18 +158,16 @@ impl Calculator {
                             if self.opration_priority.get(operation).unwrap()
                                 >= current_operator_priority
                             {
-                                Some(operation.to_string().into_boxed_str())
+                                Some(operation.to_string().into())
                             } else {
                                 None
                             }
                         })
-                        .collect::<Vec<_>>()
-                        .as_mut(),
+                        .collect::<Vec<_>>(),
                 );
 
-                operations_stack.drain(
-                    operations_stack.len()
-                        - (postfix_expression.len() - postfix_expression_length)..,
+                operations_stack.truncate(
+                    operations_stack.len() - (postfix_expression.len() - postfix_expression_length),
                 );
                 operations_stack.push(current_operator);
             } else {
@@ -181,19 +177,18 @@ impl Calculator {
             i += 1;
         }
 
-        postfix_expression.append(
+        postfix_expression.extend(
             operations_stack
                 .iter()
                 .rev()
-                .map_while(|operation| {
+                .map(|operation| {
                     if *operation != '(' {
-                        Some(Ok(operation.to_string().into_boxed_str()))
+                        Ok(operation.to_string().into())
                     } else {
-                        Some(Err(CalculatorError::OpeningBracketWithoutAPair))
+                        Err(CalculatorError::OpeningBracketWithoutAPair)
                     }
                 })
-                .collect::<Result<Vec<_>, _>>()?
-                .as_mut(),
+                .collect::<Result<Vec<_>, _>>()?,
         );
 
         Ok(postfix_expression)
@@ -207,9 +202,8 @@ impl Calculator {
         let mut has_dot = false;
 
         match string
-            .get(position..string.len())
-            .unwrap()
             .chars()
+            .skip(position)
             .map_while(|character| {
                 if character.is_ascii_digit() {
                     Some(Ok(character))
@@ -227,7 +221,7 @@ impl Calculator {
             .collect::<Result<String, _>>()
         {
             Ok(string_number) => Ok((
-                string_number.clone().into_boxed_str(),
+                string_number.clone().into(),
                 position + string_number.len() - 1,
             )),
             Err(calculator_error) => Err(calculator_error),
