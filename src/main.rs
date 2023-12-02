@@ -2,10 +2,11 @@
 mod calculator;
 #[path = "calculator/calculator_error.rs"]
 mod calculator_error;
-#[path = "calculator/calculator_cell.rs"]
-mod calculator_cell;
 #[path = "console/console.rs"]
 mod console;
+#[path = "tests/integration_test.rs"]
+#[cfg(test)]
+mod test;
 
 use console::Console;
 use std::io;

@@ -1,6 +1,9 @@
-use std::fmt::{self, Formatter, Display};
+use std::{
+    error::Error,
+    fmt::{self, Display, Formatter},
+};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CalculatorError {
     Uknown,
     EmptyInput,
@@ -10,7 +13,7 @@ pub enum CalculatorError {
     ClosingBracketWithoutAPair,
     OpeningBracketWithoutAPair,
     DotWithoutANumber,
-    DivisonByZero
+    DivisonByZero,
 }
 
 impl Display for CalculatorError {
@@ -18,15 +21,27 @@ impl Display for CalculatorError {
         use CalculatorError::*;
 
         match self {
-            Uknown => write!(formatter, "uknown error"),
-            EmptyInput => write!(formatter, "empty input"),
-            UknownOperator(char) => write!(formatter, "uknown operator '{char}'"),
-            UknownSymbol(char) => write!(formatter, "uknown symbol '{char}'"),
-            OperationWihtoutANumber(char) => write!(formatter, "use of '{char}' operation wihtout a number"),
-            ClosingBracketWithoutAPair => write!(formatter, "use of a closing bracket without a pair"),
-            OpeningBracketWithoutAPair => write!(formatter, "use of an opening bracket without a pair"),
-            DotWithoutANumber => write!(formatter, "use of a dot without a number before it"),
-            DivisonByZero => write!(formatter, "divison by zero")
+            Uknown => formatter.write_str("uknown error"),
+            EmptyInput => formatter.write_str("empty input"),
+            UknownOperator(char) => {
+                formatter.write_str(("uknown operator".to_owned() + &char.to_string()).as_str())
+            }
+            UknownSymbol(char) => {
+                formatter.write_str(("uknown symbol".to_owned() + &char.to_string()).as_str())
+            }
+            OperationWihtoutANumber(char) => formatter.write_str(
+                ("use of".to_owned() + &char.to_string() + "operation wihtout a number").as_str(),
+            ),
+            ClosingBracketWithoutAPair => {
+                formatter.write_str("use of a closing bracket without a pair")
+            }
+            OpeningBracketWithoutAPair => {
+                formatter.write_str("use of an opening bracket without a pair")
+            }
+            DotWithoutANumber => formatter.write_str("use of a dot without a number before it"),
+            DivisonByZero => formatter.write_str("divison by zero"),
         }
     }
 }
+
+impl Error for CalculatorError {}

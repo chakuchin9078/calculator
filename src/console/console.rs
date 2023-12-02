@@ -1,59 +1,89 @@
 use crate::calculator::Calculator;
 
-use std::io::{self, Write, BufRead, StdinLock, StdoutLock};
+use std::{
+    fmt::Display,
+    io::{self, BufRead, StdinLock, StdoutLock, Write},
+};
 
 #[derive(Debug)]
 pub struct Console {
-    stdin: StdinLock <'static>,
-    stdout: StdoutLock <'static>,
-    calculator: Calculator
+    stdin: StdinLock<'static>,
+    stdout: StdoutLock<'static>,
+    calculator: Calculator,
 }
 
 impl Console {
+    const CLEAR_SCREEN: &[u8] = b"\x1b[2J\x1b[1;1H";
+
+    const WELCOME_MESSAGE: &[u8] = b"\nCalculator V 0.3 answer memorization, floating point numbers, constants, small code optimizations, readability improvements, and much more!\n\nUse 'help' for list of commands\n";
+    const NEW_EXPRESSION_MESSAGE: &[u8] = b"\nEnter an expression or a command: ";
+    const ANSWER_MASSAGE: &[u8] = b"Answer: ";
+    const ERROR_MESSAGE: &[u8] = b"Error: ";
+    const HELP_MASSAGE: &[u8] = b"
+    help - display this massage\n
+    end - close calculator\n
+    reset - reset your last answer back to 0\n
+    clear - clear screen\n
+    a - represents your last answer\n
+    p - represents PI number\n
+    e - represents EXPONENT number\n";
+
+    const HELP_COMMAND: &str = "help";
     const PROGRAM_END_COMMAND: &str = "end";
     const ANSWER_RESET_COMMAND: &str = "reset";
-    const HELP_COMMAND: &str = "help";
-
-    const HELP_MASSAGE: &str = "
-        end - end program\n
-        reset - reset your last answer to 0\n
-        help - get this massage\n
-        a - get your last answer\n
-        p - PI number\n
-        e - EXPONENT number\n";
+    const CLEAR_COMMAND: &str = "clear";
 
     pub fn new() -> Self {
         Self {
             stdin: io::stdin().lock(),
             stdout: io::stdout().lock(),
-            calculator: Calculator::new()
+            calculator: Calculator::new(),
         }
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        writeln!(self.stdout, "\nCalculator V 0.3 (answer memorization, floating point numbers, constants, small code optimizations and readability improvements)\n")?;
-        writeln!(self.stdout, "Use 'help' for list of commands\n")?;
+        self.stdout.write_all(Self::WELCOME_MESSAGE)?;
+        self.stdout.flush()?;
 
         loop {
-            write!(self.stdout, "Enter an expression or a command: ")?;
+            self.stdout.write_all(Self::NEW_EXPRESSION_MESSAGE)?;
             self.stdout.flush()?;
 
-            let mut buffer = String::new();
-            self.stdin.read_line(&mut buffer)?;
-
-            buffer = buffer [0..=buffer.len() - 2].to_string().to_lowercase();
+            let buffer = String::from_utf8_lossy(self.stdin.fill_buf()?)
+                .trim_end_matches('\n')
+                .to_lowercase();
 
             match buffer.as_str() {
+                Self::HELP_COMMAND => self.stdout.write_all(Self::HELP_MASSAGE)?,
                 Self::PROGRAM_END_COMMAND => break,
                 Self::ANSWER_RESET_COMMAND => self.calculator.reset(),
-                Self::HELP_COMMAND => writeln!(self.stdout, "{}", Self::HELP_MASSAGE)?,
-                _ =>
-                    match self.calculator.calculate(&buffer) {
-                        Ok(ok) => writeln!(self.stdout, "Answer: {ok}\n")?,
-                        Err(err) => writeln!(self.stdout, "Error: {err}\n")?
+                Self::CLEAR_COMMAND => self.stdout.write_all(Self::CLEAR_SCREEN)?,
+                _ => match self.calculator.calculate(&buffer) {
+                    Ok(answer) => self.print_calculator_output(Self::ANSWER_MASSAGE, answer)?,
+                    Err(calculator_error) => {
+                        self.print_calculator_output(Self::ERROR_MESSAGE, calculator_error)?
                     }
+                },
             }
+            self.stdout.flush()?;
+
+            self.stdin.consume(buffer.len() + 1);
         }
+
+        Ok(())
+    }
+
+    fn print_calculator_output<T: Display>(
+        &mut self,
+        message_type: &[u8],
+        message: T,
+    ) -> io::Result<()> {
+        self.stdout.write_all(
+            (String::from_utf8_lossy(message_type).to_string()
+                + &message.to_string()
+                + &'\n'.to_string())
+                .as_bytes(),
+        )?;
 
         Ok(())
     }
