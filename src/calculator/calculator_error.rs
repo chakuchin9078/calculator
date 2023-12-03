@@ -7,7 +7,6 @@ use std::{
 pub enum CalculatorError {
     Uknown,
     EmptyInput,
-    UknownOperator(char),
     UknownSymbol(char),
     OperationWihtoutANumber(char),
     ClosingBracketWithoutAPair,
@@ -23,9 +22,6 @@ impl Display for CalculatorError {
         match self {
             Uknown => formatter.write_str("uknown error"),
             EmptyInput => formatter.write_str("empty input"),
-            UknownOperator(char) => {
-                formatter.write_str(("uknown operator".to_owned() + &char.to_string()).as_str())
-            }
             UknownSymbol(char) => {
                 formatter.write_str(("uknown symbol".to_owned() + &char.to_string()).as_str())
             }

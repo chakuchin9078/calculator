@@ -1,4 +1,5 @@
 use crate::calculator_error::CalculatorError;
+use crate::calculator_expression::CalculatorExpression;
 
 use std::collections::HashMap;
 use std::f64::consts::{E, PI};
@@ -48,14 +49,22 @@ impl Calculator {
                 match operator {
                     '~' => {
                         if let Some(number) = local_numbers.pop() {
-                            local_numbers.push(self.math(0.0, number, '-')?);
+                            local_numbers.push(self.math(
+                                0.0,
+                                number,
+                                CalculatorExpression::Subtract,
+                            )?);
                         }
                     }
                     _ => {
                         if let (Some(second_number), Some(first_number)) =
                             (local_numbers.pop(), local_numbers.pop())
                         {
-                            local_numbers.push(self.math(first_number, second_number, operator)?);
+                            local_numbers.push(self.math(
+                                first_number,
+                                second_number,
+                                operator.into(),
+                            )?);
                         } else {
                             return Err(CalculatorError::OperationWihtoutANumber(operator));
                         }
@@ -90,13 +99,9 @@ impl Calculator {
             }
 
             if is_digit {
-                match self.get_string_number(infix_expression, i) {
-                    Ok((string_number, position)) => {
-                        postfix_expression.push(string_number);
-                        i = position
-                    }
-                    Err(calculator_error) => return Err(calculator_error),
-                }
+                let string_number = self.get_string_number(infix_expression, i)?;
+                i += string_number.len() - 1;
+                postfix_expression.push(string_number);
             } else if character == '.' {
                 return Err(CalculatorError::DotWithoutANumber);
             } else if character == 'a' {
@@ -198,10 +203,10 @@ impl Calculator {
         &self,
         string: &str,
         position: usize,
-    ) -> Result<(Box<str>, usize), CalculatorError> {
+    ) -> Result<Box<str>, CalculatorError> {
         let mut has_dot = false;
 
-        match string
+        Ok(string
             .chars()
             .skip(position)
             .map_while(|character| {
@@ -218,35 +223,25 @@ impl Calculator {
                     None
                 }
             })
-            .collect::<Result<String, _>>()
-        {
-            Ok(string_number) => Ok((
-                string_number.to_string().into(),
-                position + string_number.len() - 1,
-            )),
-            Err(calculator_error) => Err(calculator_error),
-        }
+            .collect::<Result<String, _>>()?
+            .into())
     }
 
     fn math(
         &self,
         first_number: f64,
         second_number: f64,
-        expression: char,
+        expression: CalculatorExpression,
     ) -> Result<f64, CalculatorError> {
+        use CalculatorExpression::*;
+
         match expression {
-            '+' => Ok(first_number + second_number),
-            '-' => Ok(first_number - second_number),
-            '*' => Ok(first_number * second_number),
-            '/' => {
-                if second_number == 0.0 {
-                    Err(CalculatorError::DivisonByZero)
-                } else {
-                    Ok(first_number / second_number)
-                }
-            }
-            '^' => Ok(f64::powf(first_number, second_number)),
-            _ => Err(CalculatorError::UknownOperator(expression)),
+            Add => Ok(first_number + second_number),
+            Subtract => Ok(first_number - second_number),
+            Multiply => Ok(first_number * second_number),
+            Divide if second_number == 0.0 => Err(CalculatorError::DivisonByZero),
+            Divide => Ok(first_number / second_number),
+            Power => Ok(first_number.powf(second_number)),
         }
     }
 }
