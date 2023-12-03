@@ -34,7 +34,7 @@ impl Calculator {
             return Err(CalculatorError::EmptyInput);
         }
 
-        let mut local_numbers = Vec::with_capacity(postfix_expression.len() / 2);
+        let mut local_numbers = Vec::new();
 
         for cell in postfix_expression {
             if cell.starts_with(|character: char| character.is_ascii_digit()) {
