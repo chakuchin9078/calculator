@@ -5,7 +5,6 @@ use std::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum CalculatorError {
-    Uknown,
     EmptyInput,
     UknownSymbol(char),
     OperationWihtoutANumber(char),
@@ -20,7 +19,6 @@ impl Display for CalculatorError {
         use CalculatorError::*;
 
         match self {
-            Uknown => formatter.write_str("uknown error"),
             EmptyInput => formatter.write_str("empty input"),
             UknownSymbol(char) => {
                 formatter.write_str(("uknown symbol".to_owned() + &char.to_string()).as_str())

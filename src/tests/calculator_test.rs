@@ -46,6 +46,14 @@ fn hiden_answer() {
 }
 
 #[test]
+fn answer_reset() {
+    let mut calc = Calculator::new();
+    calc.calculate("2+2").unwrap();
+    calc.reset();
+    assert_eq!(calc.calculate("a+2").unwrap(), 2.0);
+}
+
+#[test]
 fn negative_number() {
     let mut calc = Calculator::new();
     assert_eq!(calc.calculate("-2-2").unwrap(), -4.0);

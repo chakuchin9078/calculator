@@ -1,9 +1,7 @@
 use crate::calculator::Calculator;
 
-use std::{
-    fmt::Display,
-    io::{self, BufRead, StdinLock, StdoutLock, Write},
-};
+use num_traits::identities::*;
+use std::io::{self, BufRead, StdinLock, StdoutLock, Write};
 
 #[derive(Debug)]
 pub struct Console {
@@ -15,7 +13,7 @@ pub struct Console {
 impl Console {
     const CLEAR_SCREEN: &[u8] = b"\x1b[2J\x1b[1;1H";
 
-    const WELCOME_MESSAGE: &[u8] = b"\nCalculator V 0.3 answer memorization, floating point numbers, constants, small code optimizations, readability improvements, and much more!\n\nUse 'help' for list of commands\n";
+    const WELCOME_MESSAGE: &[u8] = b"\nCalculator V 0.3.1 the code is now much cleaner!\n\nUse 'help' for list of commands\n";
     const NEW_EXPRESSION_MESSAGE: &[u8] = b"\nEnter an expression or a command: ";
     const ANSWER_MASSAGE: &[u8] = b"Answer: ";
     const ERROR_MESSAGE: &[u8] = b"Error: ";
@@ -67,16 +65,16 @@ impl Console {
             }
             self.stdout.flush()?;
 
-            self.stdin.consume(buffer.len() + 1);
+            self.stdin.consume(buffer.len() + one::<usize>());
         }
 
         Ok(())
     }
 
-    fn print_calculator_output<T: Display>(
+    fn print_calculator_output(
         &mut self,
         message_type: &[u8],
-        message: T,
+        message: impl ToString,
     ) -> io::Result<()> {
         self.stdout.write_all(
             (String::from_utf8_lossy(message_type).to_string()

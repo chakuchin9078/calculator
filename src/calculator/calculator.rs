@@ -1,7 +1,8 @@
 use crate::calculator_error::CalculatorError;
 use crate::calculator_expression::CalculatorExpression;
 
-use std::collections::HashMap;
+use num_traits::identities::*;
+use std::collections::{HashMap, VecDeque};
 use std::f64::consts::{E, PI};
 
 #[derive(Debug)]
@@ -23,174 +24,156 @@ impl Calculator {
 
     pub fn new() -> Self {
         Self {
-            previous_answer: 0.0,
-            opration_priority: HashMap::from(Self::OPERATION_PRIORITY),
+            previous_answer: zero(),
+            opration_priority: Self::OPERATION_PRIORITY.into(),
         }
     }
 
     pub fn calculate(&mut self, infix_expression: &str) -> Result<f64, CalculatorError> {
         let postfix_expression = self.to_postfix(infix_expression)?;
 
-        if postfix_expression.is_empty() {
-            return Err(CalculatorError::EmptyInput);
-        }
-
         let mut local_numbers = Vec::new();
 
         for cell in postfix_expression {
             if cell.starts_with(|character: char| character.is_ascii_digit()) {
-                local_numbers.push(cell.parse().unwrap());
+                local_numbers.push(
+                    cell.parse()
+                        .expect("cell should contain an ascii valid digit"),
+                );
             } else if self
                 .opration_priority
-                .contains_key(&cell.chars().nth(0).unwrap())
+                .contains_key(&cell.chars().nth(zero()).expect("cell shouldn't be empty "))
             {
-                let operator = cell.chars().nth(0).unwrap();
+                let operator = cell.chars().nth(zero()).expect("cell shouldn't be empty");
+
+                let second_number = local_numbers
+                    .pop()
+                    .ok_or(CalculatorError::OperationWihtoutANumber(operator))?;
 
                 match operator {
                     '~' => {
-                        if let Some(number) = local_numbers.pop() {
-                            local_numbers.push(self.math(
-                                0.0,
-                                number,
-                                CalculatorExpression::Subtract,
-                            )?);
-                        }
+                        local_numbers
+                            .push(CalculatorExpression::Subtract.execute(zero(), second_number)?);
                     }
                     _ => {
-                        if let (Some(second_number), Some(first_number)) =
-                            (local_numbers.pop(), local_numbers.pop())
-                        {
-                            local_numbers.push(self.math(
-                                first_number,
-                                second_number,
-                                operator.into(),
-                            )?);
-                        } else {
-                            return Err(CalculatorError::OperationWihtoutANumber(operator));
-                        }
+                        let first_number = local_numbers
+                            .pop()
+                            .ok_or(CalculatorError::OperationWihtoutANumber(operator))?;
+
+                        local_numbers.push(
+                            CalculatorExpression::from(operator)
+                                .execute(first_number, second_number)?,
+                        );
                     }
                 }
             }
         }
 
-        match local_numbers.pop() {
-            Some(number) => {
-                self.previous_answer = number;
-                Ok(number)
-            }
-            None => Err(CalculatorError::Uknown),
-        }
+        let &number = local_numbers.last().ok_or(CalculatorError::EmptyInput)?;
+
+        self.previous_answer = number;
+        Ok(number)
     }
 
     pub fn reset(&mut self) {
-        self.previous_answer = 0.0;
+        self.previous_answer.set_zero();
     }
 
-    fn to_postfix(&self, infix_expression: &str) -> Result<Vec<Box<str>>, CalculatorError> {
-        let (mut postfix_expression, mut operations_stack) = (Vec::new(), Vec::new());
+    fn to_postfix(&self, infix_expression: &str) -> Result<Vec<String>, CalculatorError> {
+        let (mut postfix_expression, mut operations_stack) = (Vec::new(), VecDeque::new());
 
-        let mut i = 0;
+        let mut i = zero();
         while i < infix_expression.len() {
-            let character = infix_expression.chars().nth(i).unwrap();
-            let is_digit = character.is_ascii_digit();
+            let character = infix_expression
+                .chars()
+                .nth(i)
+                .expect("i should be less that infix expression's length");
+            let (is_digit, is_first_iteration) = (character.is_ascii_digit(), i.is_zero());
 
-            if !is_digit && i == 0 {
-                postfix_expression.push(self.previous_answer.to_string().into());
+            if !is_digit && is_first_iteration {
+                postfix_expression.push(self.previous_answer.to_string());
             }
 
             if is_digit {
                 let string_number = self.get_string_number(infix_expression, i)?;
-                i += string_number.len() - 1;
+                i += string_number.len() - one::<usize>();
                 postfix_expression.push(string_number);
             } else if character == '.' {
-                return Err(CalculatorError::DotWithoutANumber);
+                Err(CalculatorError::DotWithoutANumber)?;
             } else if character == 'a' {
-                postfix_expression.push(self.previous_answer.to_string().into());
+                postfix_expression.push(self.previous_answer.to_string());
             } else if character == 'p' {
-                postfix_expression.push(PI.to_string().into())
+                postfix_expression.push(PI.to_string())
             } else if character == 'e' {
-                postfix_expression.push(E.to_string().into())
+                postfix_expression.push(E.to_string())
             } else if character == '(' {
-                operations_stack.push(character);
+                operations_stack.push_front(character);
             } else if character == ')' {
-                let postfix_expression_length = postfix_expression.len();
+                let position = operations_stack
+                    .iter()
+                    .position(|&operation| operation == '(')
+                    .ok_or(CalculatorError::ClosingBracketWithoutAPair)?;
 
-                postfix_expression.extend(
-                    operations_stack
-                        .iter()
-                        .rev()
-                        .map_while(|operation| {
-                            if *operation != '(' {
-                                Some(operation.to_string().into())
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>(),
-                );
+                let operations = operations_stack
+                    .drain(zero()..position)
+                    .map(|operation| operation.into());
 
-                operations_stack.truncate(
-                    operations_stack.len() - (postfix_expression.len() - postfix_expression_length),
-                );
+                postfix_expression.extend(operations);
 
-                if operations_stack.is_empty() || *operations_stack.last().unwrap() != '(' {
-                    return Err(CalculatorError::ClosingBracketWithoutAPair);
-                }
-
-                operations_stack.pop();
+                operations_stack
+                    .pop_front()
+                    .expect("operations stack shouldn't be empty");
             } else if self.opration_priority.contains_key(&character) {
-                let mut current_operator = character;
+                let mut current_operation = character;
 
-                if current_operator == '-'
-                    && (i == 0
-                        || self
-                            .opration_priority
-                            .contains_key(&infix_expression.chars().nth(i - 1).unwrap()))
-                {
-                    current_operator = '~';
+                let previous_character_is_operation = is_first_iteration
+                    || self.opration_priority.contains_key(
+                        &infix_expression.chars().nth(i - one::<usize>()).expect(
+                            "i should be less that infix expression's length and more than 0",
+                        ),
+                    );
+
+                if current_operation == '-' && previous_character_is_operation {
+                    current_operation = '~';
                 }
 
-                let (postfix_expression_length, current_operator_priority) = (
-                    postfix_expression.len(),
-                    self.opration_priority.get(&current_operator).unwrap(),
-                );
+                let current_operation_priority = self
+                    .opration_priority
+                    .get(&current_operation)
+                    .expect("opration priority should contain current operation key");
 
-                postfix_expression.extend(
-                    operations_stack
-                        .iter()
-                        .rev()
-                        .map_while(|operation| {
-                            if self.opration_priority.get(operation).unwrap()
-                                >= current_operator_priority
-                            {
-                                Some(operation.to_string().into())
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>(),
-                );
+                let position = operations_stack
+                    .iter()
+                    .position(|operation| {
+                        self.opration_priority
+                            .get(operation)
+                            .expect("opration priority should contain operation key")
+                            < current_operation_priority
+                    })
+                    .unwrap_or(operations_stack.len());
 
-                operations_stack.truncate(
-                    operations_stack.len() - (postfix_expression.len() - postfix_expression_length),
-                );
-                operations_stack.push(current_operator);
+                let operations = operations_stack
+                    .drain(zero()..position)
+                    .map(|operation| operation.into());
+
+                postfix_expression.extend(operations);
+
+                operations_stack.push_front(current_operation);
             } else {
-                return Err(CalculatorError::UknownSymbol(character));
+                Err(CalculatorError::UknownSymbol(character))?;
             }
 
-            i += 1;
+            i += one::<usize>();
         }
 
         postfix_expression.extend(
             operations_stack
                 .iter()
-                .rev()
-                .map(|operation| {
-                    if *operation != '(' {
-                        Ok(operation.to_string().into())
-                    } else {
+                .map(|&operation| {
+                    if operation == '(' {
                         Err(CalculatorError::OpeningBracketWithoutAPair)
+                    } else {
+                        Ok(operation.into())
                     }
                 })
                 .collect::<Result<Vec<_>, _>>()?,
@@ -199,49 +182,26 @@ impl Calculator {
         Ok(postfix_expression)
     }
 
-    fn get_string_number(
-        &self,
-        string: &str,
-        position: usize,
-    ) -> Result<Box<str>, CalculatorError> {
+    fn get_string_number(&self, string: &str, position: usize) -> Result<String, CalculatorError> {
         let mut has_dot = false;
 
-        Ok(string
+        string
             .chars()
             .skip(position)
             .map_while(|character| {
                 if character.is_ascii_digit() {
                     Some(Ok(character))
                 } else if character == '.' {
-                    if !has_dot {
+                    if has_dot {
+                        Some(Err(CalculatorError::DotWithoutANumber))
+                    } else {
                         has_dot = true;
                         Some(Ok(character))
-                    } else {
-                        Some(Err(CalculatorError::DotWithoutANumber))
                     }
                 } else {
                     None
                 }
             })
-            .collect::<Result<String, _>>()?
-            .into())
-    }
-
-    fn math(
-        &self,
-        first_number: f64,
-        second_number: f64,
-        expression: CalculatorExpression,
-    ) -> Result<f64, CalculatorError> {
-        use CalculatorExpression::*;
-
-        match expression {
-            Add => Ok(first_number + second_number),
-            Subtract => Ok(first_number - second_number),
-            Multiply => Ok(first_number * second_number),
-            Divide if second_number == 0.0 => Err(CalculatorError::DivisonByZero),
-            Divide => Ok(first_number / second_number),
-            Power => Ok(first_number.powf(second_number)),
-        }
+            .collect()
     }
 }

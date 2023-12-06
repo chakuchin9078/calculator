@@ -4,11 +4,11 @@ mod calculator;
 mod calculator_error;
 #[path = "calculator/calculator_expression.rs"]
 mod calculator_expression;
+#[path = "tests/calculator_test.rs"]
+#[cfg(test)]
+mod calculator_test;
 #[path = "console/console.rs"]
 mod console;
-#[path = "tests/integration_test.rs"]
-#[cfg(test)]
-mod test;
 
 use console::Console;
 use std::io;
