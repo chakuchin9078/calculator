@@ -102,7 +102,7 @@ impl Calculator {
                 i += string_number.len() - usize::one();
                 postfix_expression.push(string_number);
             } else if character == '.' {
-                Err(CalculatorError::DotWithoutANumber)?;
+                return Err(CalculatorError::DotWithoutANumber);
             } else if character == 'a' {
                 postfix_expression.push(self.previous_answer.to_string());
             } else if character == 'p' {
@@ -163,7 +163,7 @@ impl Calculator {
 
                 operations_stack.push_front(current_operation);
             } else {
-                Err(CalculatorError::UknownSymbol(character))?;
+                return Err(CalculatorError::UknownSymbol(character));
             }
 
             i += usize::one();
