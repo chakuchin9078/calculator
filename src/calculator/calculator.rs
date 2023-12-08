@@ -35,16 +35,16 @@ impl Calculator {
         let mut local_numbers = Vec::new();
 
         for cell in postfix_expression {
-            if cell.starts_with(|character: char| character.is_ascii_digit()) {
-                local_numbers.push(
-                    cell.parse()
-                        .expect("cell should contain an ascii valid digit"),
-                );
-            } else if self
-                .opration_priority
-                .contains_key(&cell.chars().nth(zero()).expect("cell shouldn't be empty "))
-            {
-                let operator = cell.chars().nth(zero()).expect("cell shouldn't be empty");
+            let first_character = cell.chars().nth(zero()).expect("cell shouldn't be empty");
+
+            if first_character.is_ascii_digit() {
+                let number = cell
+                    .parse()
+                    .expect("cell should contain an ascii valid digit");
+
+                local_numbers.push(number);
+            } else if self.opration_priority.contains_key(&first_character) {
+                let operator = first_character;
 
                 let second_number = local_numbers
                     .pop()
@@ -52,18 +52,20 @@ impl Calculator {
 
                 match operator {
                     '~' => {
-                        local_numbers
-                            .push(CalculatorExpression::Subtract.execute(zero(), second_number)?);
+                        let inverted_number =
+                            CalculatorExpression::Subtract.execute(zero(), second_number)?;
+
+                        local_numbers.push(inverted_number);
                     }
                     _ => {
                         let first_number = local_numbers
                             .pop()
                             .ok_or(CalculatorError::OperationWihtoutANumber(operator))?;
 
-                        local_numbers.push(
-                            CalculatorExpression::from(operator)
-                                .execute(first_number, second_number)?,
-                        );
+                        let result = CalculatorExpression::from(operator)
+                            .execute(first_number, second_number)?;
+
+                        local_numbers.push(result);
                     }
                 }
             }
@@ -96,16 +98,16 @@ impl Calculator {
 
             if is_digit {
                 let string_number = self.get_string_number(infix_expression, i)?;
-                i += string_number.len() - one::<usize>();
+                i += string_number.len() - usize::one();
                 postfix_expression.push(string_number);
             } else if character == '.' {
                 Err(CalculatorError::DotWithoutANumber)?;
             } else if character == 'a' {
                 postfix_expression.push(self.previous_answer.to_string());
             } else if character == 'p' {
-                postfix_expression.push(PI.to_string())
+                postfix_expression.push(PI.to_string());
             } else if character == 'e' {
-                postfix_expression.push(E.to_string())
+                postfix_expression.push(E.to_string());
             } else if character == '(' {
                 operations_stack.push_front(character);
             } else if character == ')' {
@@ -115,7 +117,7 @@ impl Calculator {
                     .ok_or(CalculatorError::ClosingBracketWithoutAPair)?;
 
                 let operations = operations_stack
-                    .drain(zero()..position)
+                    .drain(..position)
                     .map(|operation| operation.into());
 
                 postfix_expression.extend(operations);
@@ -128,9 +130,9 @@ impl Calculator {
 
                 let previous_character_is_operation = is_first_iteration
                     || self.opration_priority.contains_key(
-                        &infix_expression.chars().nth(i - one::<usize>()).expect(
-                            "i should be less that infix expression's length and more than 0",
-                        ),
+                        &infix_expression.chars().nth(i - usize::one()).expect(
+                            "i should be less that infix expression's length and more than 0"
+                        )
                     );
 
                 if current_operation == '-' && previous_character_is_operation {
@@ -153,7 +155,7 @@ impl Calculator {
                     .unwrap_or(operations_stack.len());
 
                 let operations = operations_stack
-                    .drain(zero()..position)
+                    .drain(..position)
                     .map(|operation| operation.into());
 
                 postfix_expression.extend(operations);
@@ -163,13 +165,13 @@ impl Calculator {
                 Err(CalculatorError::UknownSymbol(character))?;
             }
 
-            i += one::<usize>();
+            i += usize::one();
         }
 
         postfix_expression.extend(
             operations_stack
-                .iter()
-                .map(|&operation| {
+                .into_iter()
+                .map(|operation| {
                     if operation == '(' {
                         Err(CalculatorError::OpeningBracketWithoutAPair)
                     } else {

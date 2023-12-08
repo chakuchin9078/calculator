@@ -13,7 +13,8 @@ pub struct Console {
 impl Console {
     const CLEAR_SCREEN: &[u8] = b"\x1b[2J\x1b[1;1H";
 
-    const WELCOME_MESSAGE: &[u8] = b"\nCalculator V 0.3.1 the code is now much cleaner!\n\nUse 'help' for list of commands\n";
+    const WELCOME_MESSAGE: &[u8] =
+        b"\nCalculator V 0.3.1 the code is now much cleaner!\n\nUse 'help' for list of commands\n";
     const NEW_EXPRESSION_MESSAGE: &[u8] = b"\nEnter an expression or a command: ";
     const ANSWER_MASSAGE: &[u8] = b"Answer: ";
     const ERROR_MESSAGE: &[u8] = b"Error: ";
@@ -65,7 +66,7 @@ impl Console {
             }
             self.stdout.flush()?;
 
-            self.stdin.consume(buffer.len() + one::<usize>());
+            self.stdin.consume(buffer.len() + usize::one());
         }
 
         Ok(())
@@ -76,12 +77,11 @@ impl Console {
         message_type: &[u8],
         message: impl ToString,
     ) -> io::Result<()> {
-        self.stdout.write_all(
-            (String::from_utf8_lossy(message_type).to_string()
-                + &message.to_string()
-                + &'\n'.to_string())
-                .as_bytes(),
-        )?;
+        let output = String::from_utf8_lossy(message_type).to_string()
+            + &message.to_string()
+            + &'\n'.to_string();
+
+        self.stdout.write_all(output.as_bytes())?;
 
         Ok(())
     }
