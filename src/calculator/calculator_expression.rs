@@ -47,9 +47,10 @@ trait CheckedDiv<T: Div> {
 
 impl CheckedDiv<f64> for f64 {
     fn checked_div(&self, other: f64) -> Result<f64, CalculatorError> {
-        match other.is_zero() {
-            true => Err(CalculatorError::DivisonByZero),
-            false => Ok(self / other),
+        if other.is_zero() {
+            Err(CalculatorError::DivisonByZero)
+        } else {
+            Ok(self / other)
         }
     }
 }
