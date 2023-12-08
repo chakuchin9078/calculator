@@ -30,9 +30,8 @@ impl Calculator {
     }
 
     pub fn calculate(&mut self, infix_expression: &str) -> Result<f64, CalculatorError> {
-        let postfix_expression = self.to_postfix(infix_expression)?;
-
-        let mut local_numbers = Vec::new();
+        let (postfix_expression, mut local_numbers) =
+            (self.to_postfix(infix_expression)?, Vec::new());
 
         for cell in postfix_expression {
             let first_character = cell.chars().nth(zero()).expect("cell shouldn't be empty");
@@ -90,6 +89,7 @@ impl Calculator {
                 .chars()
                 .nth(i)
                 .expect("i should be less that infix expression's length");
+
             let (is_digit, is_first_iteration) = (character.is_ascii_digit(), i.is_zero());
 
             if !is_digit && is_first_iteration {
@@ -98,6 +98,7 @@ impl Calculator {
 
             if is_digit {
                 let string_number = self.get_string_number(infix_expression, i)?;
+
                 i += string_number.len() - usize::one();
                 postfix_expression.push(string_number);
             } else if character == '.' {
@@ -131,8 +132,8 @@ impl Calculator {
                 let previous_character_is_operation = is_first_iteration
                     || self.opration_priority.contains_key(
                         &infix_expression.chars().nth(i - usize::one()).expect(
-                            "i should be less that infix expression's length and more than 0"
-                        )
+                            "i should be less that infix expression's length and more than 0",
+                        ),
                     );
 
                 if current_operation == '-' && previous_character_is_operation {
