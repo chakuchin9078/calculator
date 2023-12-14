@@ -64,7 +64,6 @@ impl Console {
                     }
                 },
             }
-            self.stdout.flush()?;
 
             self.stdin.consume(buffer.len() + usize::one());
         }
@@ -82,7 +81,6 @@ impl Console {
             + &'\n'.to_string();
 
         self.stdout.write_all(output.as_bytes())?;
-
-        Ok(())
+        self.stdout.flush()
     }
 }

@@ -80,7 +80,7 @@ impl Calculator {
         self.previous_answer.set_zero();
     }
 
-    fn to_postfix(&self, infix_expression: &str) -> Result<Vec<String>, CalculatorError> {
+    fn to_postfix(&self, infix_expression: &str) -> Result<Vec<Box<str>>, CalculatorError> {
         let (mut postfix_expression, mut operations_stack) = (Vec::new(), VecDeque::new());
 
         let mut i = zero();
@@ -93,7 +93,7 @@ impl Calculator {
             let (is_digit, is_first_iteration) = (character.is_ascii_digit(), i.is_zero());
 
             if !is_digit && is_first_iteration {
-                postfix_expression.push(self.previous_answer.to_string());
+                postfix_expression.push(self.previous_answer.to_string().into());
             }
 
             if is_digit {
@@ -104,11 +104,11 @@ impl Calculator {
             } else if character == '.' {
                 return Err(CalculatorError::DotWithoutANumber);
             } else if character == 'a' {
-                postfix_expression.push(self.previous_answer.to_string());
+                postfix_expression.push(self.previous_answer.to_string().into());
             } else if character == 'p' {
-                postfix_expression.push(PI.to_string());
+                postfix_expression.push(PI.to_string().into());
             } else if character == 'e' {
-                postfix_expression.push(E.to_string());
+                postfix_expression.push(E.to_string().into());
             } else if character == '(' {
                 operations_stack.push_front(character);
             } else if character == ')' {
@@ -119,7 +119,7 @@ impl Calculator {
 
                 let operations = operations_stack
                     .drain(..position)
-                    .map(|operation| operation.into());
+                    .map(|operation| operation.to_string().into());
 
                 postfix_expression.extend(operations);
 
@@ -157,7 +157,7 @@ impl Calculator {
 
                 let operations = operations_stack
                     .drain(..position)
-                    .map(|operation| operation.into());
+                    .map(|operation| operation.to_string().into());
 
                 postfix_expression.extend(operations);
 
@@ -176,7 +176,7 @@ impl Calculator {
                     if operation == '(' {
                         Err(CalculatorError::OpeningBracketWithoutAPair)
                     } else {
-                        Ok(operation.into())
+                        Ok(operation.to_string().into())
                     }
                 })
                 .collect::<Result<Vec<_>, _>>()?,
@@ -185,10 +185,14 @@ impl Calculator {
         Ok(postfix_expression)
     }
 
-    fn get_string_number(&self, string: &str, position: usize) -> Result<String, CalculatorError> {
+    fn get_string_number(
+        &self,
+        string: &str,
+        position: usize,
+    ) -> Result<Box<str>, CalculatorError> {
         let mut has_dot = false;
 
-        string
+        Ok(string
             .chars()
             .skip(position)
             .map_while(|character| {
@@ -205,6 +209,7 @@ impl Calculator {
                     None
                 }
             })
-            .collect()
+            .collect::<Result<String, _>>()?
+            .into())
     }
 }
