@@ -20,7 +20,7 @@ fn order_of_operations() {
 }
 
 #[test]
-fn hard_equasion() {
+fn hard_equation() {
     let mut calc = Calculator::new();
     assert_eq!(calc.calculate("15/(7-(1+1))*3-(2+(1+1))*15/(7-(200+1))*3-(2+(1+1))*(15/(7-(1+1))*3-(2+(1+1))+15/(7-(1+1))*3-(2+(1+1)))").unwrap(), -30.072164948453608);
 }
@@ -39,7 +39,7 @@ fn answer() {
 }
 
 #[test]
-fn hiden_answer() {
+fn hidden_answer() {
     let mut calc = Calculator::new();
     calc.calculate("2+2").unwrap();
     assert_eq!(calc.calculate("*2").unwrap(), 8.0);
@@ -72,29 +72,29 @@ fn empty_input() {
 }
 
 #[test]
-fn uknown_symbol() {
+fn unknown_symbol() {
     let mut calc = Calculator::new();
     assert_eq!(
         calc.calculate("@").unwrap_err(),
-        CalculatorError::UknownSymbol('@')
+        CalculatorError::UnknownSymbol('@')
     );
 }
 
 #[test]
-fn uknown_symbol_in_expression() {
+fn unknown_symbol_in_expression() {
     let mut calc = Calculator::new();
     assert_eq!(
         calc.calculate("2+@2").unwrap_err(),
-        CalculatorError::UknownSymbol('@')
+        CalculatorError::UnknownSymbol('@')
     );
 }
 
 #[test]
-fn operation_wihtout_a_number() {
+fn operation_without_a_number() {
     let mut calc = Calculator::new();
     assert_eq!(
         calc.calculate("2+").unwrap_err(),
-        CalculatorError::OperationWihtoutANumber('+')
+        CalculatorError::OperatorWithoutANumber('+')
     );
 }
 
@@ -153,10 +153,10 @@ fn dot_without_a_number_after() {
 }
 
 #[test]
-fn divison_by_zero() {
+fn division_by_zero() {
     let mut calc = Calculator::new();
     assert_eq!(
         calc.calculate("2/0").unwrap_err(),
-        CalculatorError::DivisonByZero
+        CalculatorError::DivisionByZero
     );
 }

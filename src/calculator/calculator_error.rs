@@ -6,12 +6,12 @@ use std::{
 #[derive(Debug, PartialEq, Eq)]
 pub enum CalculatorError {
     EmptyInput,
-    UknownSymbol(char),
-    OperationWihtoutANumber(char),
+    UnknownSymbol(char),
+    OperatorWithoutANumber(char),
     ClosingBracketWithoutAPair,
     OpeningBracketWithoutAPair,
     DotWithoutANumber,
-    DivisonByZero,
+    DivisionByZero,
 }
 
 impl Display for CalculatorError {
@@ -20,11 +20,11 @@ impl Display for CalculatorError {
 
         match self {
             EmptyInput => formatter.write_str("empty input"),
-            UknownSymbol(char) => {
-                formatter.write_str(("uknown symbol".to_owned() + &char.to_string()).as_str())
-            }
-            OperationWihtoutANumber(char) => formatter.write_str(
-                ("use of".to_owned() + &char.to_string() + "operation wihtout a number").as_str(),
+            UnknownSymbol(char) => formatter
+                .write_str(("unknown symbol '".to_owned() + &char.to_string() + "'").as_str()),
+            OperatorWithoutANumber(character) => formatter.write_str(
+                ("use of '".to_owned() + &(character).to_string() + "' operation without a number")
+                    .as_str(),
             ),
             ClosingBracketWithoutAPair => {
                 formatter.write_str("use of a closing bracket without a pair")
@@ -33,7 +33,7 @@ impl Display for CalculatorError {
                 formatter.write_str("use of an opening bracket without a pair")
             }
             DotWithoutANumber => formatter.write_str("use of a dot without a number before it"),
-            DivisonByZero => formatter.write_str("divison by zero"),
+            DivisionByZero => formatter.write_str("division by zero"),
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::calculator_error::CalculatorError;
-use crate::calculator_expression::CalculatorExpression;
+use crate::calculator_operator::CalculatorOperator;
 
 use num_traits::identities::*;
 use std::collections::{HashMap, VecDeque};
@@ -8,7 +8,7 @@ use std::f64::consts::{E, PI};
 #[derive(Debug)]
 pub struct Calculator {
     previous_answer: f64,
-    opration_priority: HashMap<char, u8>,
+    operation_priority: HashMap<char, u8>,
 }
 
 impl Calculator {
@@ -25,7 +25,7 @@ impl Calculator {
     pub fn new() -> Self {
         Self {
             previous_answer: zero(),
-            opration_priority: Self::OPERATION_PRIORITY.into(),
+            operation_priority: Self::OPERATION_PRIORITY.into(),
         }
     }
 
@@ -33,47 +33,39 @@ impl Calculator {
         let (postfix_expression, mut local_numbers) =
             (self.to_postfix(infix_expression)?, Vec::new());
 
-        for cell in postfix_expression {
-            let first_character = cell.chars().nth(zero()).expect("cell shouldn't be empty");
-
-            if first_character.is_ascii_digit() {
-                let number = cell
-                    .parse()
-                    .expect("cell should contain an ascii valid digit");
-
-                local_numbers.push(number);
-            } else if self.opration_priority.contains_key(&first_character) {
-                let operator = first_character;
-
-                let second_number = local_numbers
-                    .pop()
-                    .ok_or(CalculatorError::OperationWihtoutANumber(operator))?;
-
-                match operator {
-                    '~' => {
-                        let inverted_number =
-                            CalculatorExpression::Subtract.execute(zero(), second_number)?;
-
-                        local_numbers.push(inverted_number);
-                    }
-                    _ => {
-                        let first_number = local_numbers
+        postfix_expression.iter().try_for_each(|cell| {
+            let result = match CalculatorOperator::try_from(
+                cell.chars().next().expect("cell shouldn't be empty"),
+            ) {
+                Ok(operator) => {
+                    let second_number =
+                        local_numbers
                             .pop()
-                            .ok_or(CalculatorError::OperationWihtoutANumber(operator))?;
+                            .ok_or(CalculatorError::OperatorWithoutANumber(
+                                operator.clone().into(),
+                            ))?;
 
-                        let result = CalculatorExpression::from(operator)
-                            .execute(first_number, second_number)?;
+                    let first_number = match operator {
+                        CalculatorOperator::Inverse => None,
+                        _ => Some(local_numbers.pop().ok_or(
+                            CalculatorError::OperatorWithoutANumber(operator.clone().into()),
+                        )?),
+                    };
 
-                        local_numbers.push(result);
-                    }
+                    operator.execute(first_number, second_number)
                 }
-            }
-        }
+                Err(_) => Ok(cell.parse().expect("cell should be a number")),
+            }?;
 
-        let &number = local_numbers.last().ok_or(CalculatorError::EmptyInput)?;
+            local_numbers.push(result);
 
-        self.previous_answer = number;
-        Ok(number)
+            Ok(())
+        })?;
+
+        let &current_answer = local_numbers.last().ok_or(CalculatorError::EmptyInput)?;
+
+        self.previous_answer = current_answer;
+        Ok(current_answer)
     }
 
     pub fn reset(&mut self) {
@@ -126,11 +118,11 @@ impl Calculator {
                 operations_stack
                     .pop_front()
                     .expect("operations stack shouldn't be empty");
-            } else if self.opration_priority.contains_key(&character) {
+            } else if self.operation_priority.contains_key(&character) {
                 let mut current_operation = character;
 
                 let previous_character_is_operation = is_first_iteration
-                    || self.opration_priority.contains_key(
+                    || self.operation_priority.contains_key(
                         &infix_expression.chars().nth(i - usize::one()).expect(
                             "i should be less that infix expression's length and more than 0",
                         ),
@@ -141,16 +133,16 @@ impl Calculator {
                 }
 
                 let current_operation_priority = self
-                    .opration_priority
+                    .operation_priority
                     .get(&current_operation)
-                    .expect("opration priority should contain current operation key");
+                    .expect("operation priority should contain current operation key");
 
                 let position = operations_stack
                     .iter()
                     .position(|operation| {
-                        self.opration_priority
+                        self.operation_priority
                             .get(operation)
-                            .expect("opration priority should contain operation key")
+                            .expect("operation priority should contain operation key")
                             < current_operation_priority
                     })
                     .unwrap_or(operations_stack.len());
@@ -163,7 +155,7 @@ impl Calculator {
 
                 operations_stack.push_front(current_operation);
             } else {
-                return Err(CalculatorError::UknownSymbol(character));
+                return Err(CalculatorError::UnknownSymbol(character));
             }
 
             i += usize::one();
