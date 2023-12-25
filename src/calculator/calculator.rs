@@ -33,8 +33,6 @@ impl Calculator {
         let (postfix_expression, mut local_numbers) =
             (self.to_postfix(infix_expression)?, Vec::new());
 
-        println!("{postfix_expression:?}");
-
         postfix_expression.iter().try_for_each(|cell| {
             let result = match CalculatorOperator::try_from(
                 cell.chars()
