@@ -33,9 +33,13 @@ impl Calculator {
         let (postfix_expression, mut local_numbers) =
             (self.to_postfix(infix_expression)?, Vec::new());
 
+        println!("{postfix_expression:?}");
+
         postfix_expression.iter().try_for_each(|cell| {
             let result = match CalculatorOperator::try_from(
-                cell.chars().next().expect("cell shouldn't be empty"),
+                cell.chars()
+                    .nth(cell.len() - 1)
+                    .expect("cell shouldn't be empty"),
             ) {
                 Ok(operator) => {
                     let second_number =
@@ -121,8 +125,8 @@ impl Calculator {
             } else if self.operation_priority.contains_key(&character) {
                 let mut current_operation = character;
 
-                let previous_character_is_operation = is_first_iteration
-                    || self.operation_priority.contains_key(
+                let previous_character_is_operation = (!is_first_iteration)
+                    && self.operation_priority.contains_key(
                         &infix_expression.chars().nth(i - usize::one()).expect(
                             "i should be less that infix expression's length and more than 0",
                         ),
